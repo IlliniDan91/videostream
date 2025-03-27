@@ -330,8 +330,9 @@ app.get('/api/direct-stream/:root/:directory/:filename', (req, res) => {
 function cleanupOldFiles() {
     const uploadsDir = path.join(__dirname, 'uploads');
     const streamsDir = path.join(__dirname, 'streams');
+    const tempStreamsDir = path.join(os.tmpdir(), 'stream');
 
-    [uploadsDir, streamsDir].forEach(dir => {
+    [uploadsDir, streamsDir, tempStreamsDir].forEach(dir => {
         if (fs.existsSync(dir)) {
             fs.readdir(dir, (err, files) => {
                 if (err) {
@@ -352,9 +353,16 @@ function cleanupOldFiles() {
                         const endTime = new Date(stats.ctime).getTime() + 3600000; // 1 hour in milliseconds
 
                         if (now > endTime) {
-                            fs.unlink(filePath, err => {
-                                if (err) console.error(`Error deleting ${filePath}:`, err);
-                            });
+                            // If it's a directory (like stream ID directories in temp), remove recursively
+                            if (stats.isDirectory()) {
+                                fs.rm(filePath, { recursive: true, force: true }, err => {
+                                    if (err) console.error(`Error deleting directory ${filePath}:`, err);
+                                });
+                            } else {
+                                fs.unlink(filePath, err => {
+                                    if (err) console.error(`Error deleting file ${filePath}:`, err);
+                                });
+                            }
                         }
                     });
                 });
