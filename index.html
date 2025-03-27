@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Local Media Streaming</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+        :root {
+            --primary-color: #4A90E2;
+            --secondary-color: #2C3E50;
+            --background-color: #F5F7FA;
+            --card-background: #FFFFFF;
+            --text-color: #2C3E50;
+            --border-radius: 12px;
+            --spacing: 20px;
+            --mobile-breakpoint: 768px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: var(--spacing);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing);
+        }
+
+        .card {
+            background: var(--card-background);
+            padding: var(--spacing);
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+        }
+
+        h1 {
+            color: var(--secondary-color);
+            font-size: 2.5em;
+            margin-bottom: var(--spacing);
+            text-align: center;
+        }
+
+        .select-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        select {
+            padding: 12px;
+            font-size: 16px;
+            border: 2px solid #E0E5EC;
+            border-radius: var(--border-radius);
+            background-color: white;
+            cursor: pointer;
+            transition: border-color 0.2s ease;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 16px;
+            padding-right: 40px;
+        }
+
+        select:hover {
+            border-color: var(--primary-color);
+        }
+
+        select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+        }
+
+        select:disabled {
+            background-color: #F5F7FA;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background: #F8FAFC;
+            border-radius: var(--border-radius);
+            margin: 10px 0;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+            margin-right: 12px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #CBD5E0;
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--primary-color);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .toggle-label {
+            font-size: 16px;
+            color: var(--text-color);
+            user-select: none;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            padding: 14px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 100%;
+        }
+
+        button:hover:not(:disabled) {
+            background-color: #357ABD;
+            transform: translateY(-1px);
+        }
+
+        button:disabled {
+            background-color: #CBD5E0;
+            cursor: not-allowed;
+        }
+
+        .status {
+            padding: 12px;
+            border-radius: var(--border-radius);
+            background-color: #F8FAFC;
+            color: var(--text-color);
+            font-size: 14px;
+            text-align: center;
+        }
+
+        video {
+            width: 100%;
+            border-radius: var(--border-radius);
+            background: #000;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Mobile Styles */
+        @media (max-width: 768px) {
+            :root {
+                --spacing: 16px;
+            }
+
+            body {
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .card {
+                padding: 15px;
+            }
+
+            select, button {
+                padding: 12px;
+                font-size: 16px;
+            }
+
+            .toggle-container {
+                padding: 8px;
+            }
+
+            video {
+                max-height: 80vh;
+            }
+        }
+
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --background-color: #1A202C;
+                --card-background: #2D3748;
+                --text-color: #F7FAFC;
+            }
+
+            select {
+                background-color: #2D3748;
+                border-color: #4A5568;
+                color: #F7FAFC;
+            }
+
+            select:disabled {
+                background-color: #2D3748;
+                opacity: 0.5;
+            }
+
+            .toggle-container {
+                background: #2D3748;
+            }
+
+            .status {
+                background-color: #2D3748;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Media Stream</h1>
+        
+        <div class="card">
+            <div class="select-container">
+                <label for="rootSelect">Select Drive</label>
+                <select id="rootSelect">
+                    <option value="">Loading drives...</option>
+                </select>
+            </div>
+
+            <div class="select-container">
+                <label for="directorySelect">Select Directory</label>
+                <select id="directorySelect" disabled>
+                    <option value="">Select a drive first</option>
+                </select>
+            </div>
+
+            <div class="select-container">
+                <label for="fileSelect">Select Video</label>
+                <select id="fileSelect" disabled>
+                    <option value="">Select a directory first</option>
+                </select>
+            </div>
+
+            <div class="toggle-container">
+                <label class="toggle-switch" for="directStreamToggle">
+                    <input type="checkbox" id="directStreamToggle" checked>
+                    <span class="slider"></span>
+                </label>
+                <label class="toggle-label" for="directStreamToggle">Direct Stream</label>
+            </div>
+
+            <button id="startStream" disabled>Start Streaming</button>
+        </div>
+        
+        <div class="status" id="status"></div>
+
+        <video id="hlsPlayer" controls></video>
+    </div>
+
+    <script>
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        const rootSelect = document.getElementById('rootSelect');
+        const directorySelect = document.getElementById('directorySelect');
+        const fileSelect = document.getElementById('fileSelect');
+        const startStreamButton = document.getElementById('startStream');
+        const statusElement = document.getElementById('status');
+        const videoPlayer = document.getElementById('hlsPlayer');
+        const directStreamToggle = document.getElementById('directStreamToggle');
+        let hls = null;
+
+        // Adjust UI for mobile
+        if (isMobile) {
+            document.body.classList.add('mobile');
+            videoPlayer.setAttribute('playsinline', '');
+            videoPlayer.setAttribute('webkit-playsinline', '');
+        }
+
+        // Load root directories when page loads
+        fetch('/api/roots')
+            .then(response => response.json())
+            .then(roots => {
+                rootSelect.innerHTML = '<option value="">Select a drive</option>';
+                roots.forEach(root => {
+                    const option = document.createElement('option');
+                    option.value = root.name;
+                    option.textContent = root.name;
+                    rootSelect.appendChild(option);
+                });
+                rootSelect.disabled = false;
+            })
+            .catch(error => {
+                console.error('Error loading roots:', error);
+                statusElement.textContent = 'Error loading drives';
+            });
+
+        // Load directories when root is selected
+        rootSelect.addEventListener('change', () => {
+            const root = rootSelect.value;
+            if (!root) {
+                directorySelect.innerHTML = '<option value="">Select a drive first</option>';
+                directorySelect.disabled = true;
+                fileSelect.innerHTML = '<option value="">Select a directory first</option>';
+                fileSelect.disabled = true;
+                startStreamButton.disabled = true;
+                return;
+            }
+
+            statusElement.textContent = 'Loading directories...';
+            fetch(`/api/directories/${encodeURIComponent(root)}`)
+                .then(response => response.json())
+                .then(directories => {
+                    directorySelect.innerHTML = '<option value="">Select a directory</option>';
+                    directories.forEach(dir => {
+                        const option = document.createElement('option');
+                        option.value = dir;
+                        option.textContent = dir;
+                        directorySelect.appendChild(option);
+                    });
+                    directorySelect.disabled = false;
+                    fileSelect.disabled = true;
+                    startStreamButton.disabled = true;
+                    statusElement.textContent = directories.length ? '' : 'No directories found';
+                })
+                .catch(error => {
+                    console.error('Error loading directories:', error);
+                    statusElement.textContent = 'Error loading directories';
+                });
+        });
+
+        // Load files when directory is selected
+        directorySelect.addEventListener('change', () => {
+            const root = rootSelect.value;
+            const directory = directorySelect.value;
+            if (!root || !directory) {
+                fileSelect.innerHTML = '<option value="">Select a directory first</option>';
+                fileSelect.disabled = true;
+                startStreamButton.disabled = true;
+                return;
+            }
+
+            statusElement.textContent = 'Loading files...';
+            fetch(`/api/files/${encodeURIComponent(root)}/${encodeURIComponent(directory)}`)
+                .then(response => response.json())
+                .then(files => {
+                    fileSelect.innerHTML = '<option value="">Select a video file</option>';
+                    files.forEach(file => {
+                        const option = document.createElement('option');
+                        option.value = file;
+                        option.textContent = file;
+                        fileSelect.appendChild(option);
+                    });
+                    fileSelect.disabled = false;
+                    startStreamButton.disabled = true;
+                    statusElement.textContent = files.length ? '' : 'No video files found';
+                })
+                .catch(error => {
+                    console.error('Error loading files:', error);
+                    statusElement.textContent = 'Error loading files';
+                });
+        });
+
+        // Handle file selection
+        fileSelect.addEventListener('change', () => {
+            startStreamButton.disabled = !fileSelect.value;
+            if (fileSelect.value) {
+                statusElement.textContent = 'Ready to stream';
+            }
+        });
+
+        // Start streaming when button is clicked
+        startStreamButton.addEventListener('click', () => {
+            const root = rootSelect.value;
+            const directory = directorySelect.value;
+            const filename = fileSelect.value;
+            const isDirectStream = directStreamToggle.checked;
+
+            statusElement.textContent = isDirectStream ? 'Starting direct stream...' : 'Starting stream conversion...';
+            startStreamButton.disabled = true;
+
+            fetch('/api/stream', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ root, directory, filename, directStream: isDirectStream })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                if (!data.isDirectStream) {
+                    // HLS streaming with improved loading feedback
+                    if (Hls.isSupported()) {
+                        if (hls) {
+                            hls.destroy();
+                        }
+                        hls = new Hls({
+                            debug: true,              // Enable debug logs to see what's happening
+                            autoStartLoad: true,
+                            startLevel: 0,
+                            defaultAudioCodec: 'mp4a.40.2',
+                            maxBufferLength: 40,
+                            maxBufferSize: 30 * 1000 * 1000  // 30MB
+                        });
+                        
+                        hls.loadSource(data.streamUrl);
+                        hls.attachMedia(videoPlayer);
+                        
+                        // Add more detailed status updates
+                        hls.on(Hls.Events.MANIFEST_LOADING, () => {
+                            statusElement.textContent = 'Starting stream...';
+                        });
+                        
+                        hls.on(Hls.Events.LEVEL_LOADED, () => {
+                            statusElement.textContent = 'Stream is ready - loading first segments...';
+                        });
+                        
+                        hls.on(Hls.Events.FRAG_LOADED, () => {
+                            if (videoPlayer.paused) {
+                                statusElement.textContent = 'Starting playback...';
+                                videoPlayer.play().catch(error => {
+                                    console.error('Error playing video:', error);
+                                    statusElement.textContent = 'Error playing video';
+                                });
+                            }
+                        });
+                        
+                        hls.on(Hls.Events.ERROR, (event, data) => {
+                            if (data.fatal) {
+                                statusElement.textContent = 'Stream error: ' + data.details;
+                            }
+                        });
+                    }
+                } else {
+                    // Direct streaming
+                    videoPlayer.src = data.streamUrl;
+                    // Add type attribute for MKV files
+                    if (filename.toLowerCase().endsWith('.mkv')) {
+                        videoPlayer.setAttribute('type', 'video/x-matroska');
+                    }
+                    statusElement.textContent = 'Direct stream ready!';
+                    videoPlayer.play().catch(error => {
+                        console.error('Error playing video:', error);
+                        // If direct streaming fails for MKV, suggest using HLS
+                        if (filename.toLowerCase().endsWith('.mkv')) {
+                            statusElement.textContent = 'Direct MKV playback failed. Try disabling direct streaming.';
+                            directStreamToggle.checked = false;
+                        } else {
+                            statusElement.textContent = 'Error playing video';
+                        }
+                    });
+                }
+                startStreamButton.disabled = false;
+            })
+            .catch(error => {
+                console.error('Error starting stream:', error);
+                statusElement.textContent = 'Error starting stream: ' + error.message;
+                startStreamButton.disabled = false;
+            });
+        });
+
+        // Add toggle switch event listener
+        directStreamToggle.addEventListener('change', () => {
+            if (fileSelect.value) {
+                statusElement.textContent = 'Ready to stream';
+            }
+        });
+    </script>
+</body>
+</html> 
